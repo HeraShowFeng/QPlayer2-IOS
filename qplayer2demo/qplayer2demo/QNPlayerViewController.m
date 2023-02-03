@@ -20,6 +20,12 @@
 #import "QDataHandle.h"
 #import "QNToastView.h"
 
+#import "QNCDNQualityMonitor.h"
+
+#define QN_HIGH_RTT_THRESHOLD 200
+#define QN_POOR_QUALITY_BUFFERING_PERIOD 3
+#define QN_FAIR_QUALITY_BUFFERING_PERIOD 1
+#define QN_GOOD_QUALITY_BUFFERING_PERIOD 5
 
 #define PL_PLAYER_VIDEO_ROOT_FOLDER @"PLPlayerFloder"
 #define GET_PL_PLAYER_VIDEO_FOLDER(folderName) [PL_PLAYER_VIDEO_ROOT_FOLDER stringByAppendingPathComponent:folderName]
@@ -40,8 +46,29 @@ QIPlayerAuthenticationListener,
 QIPlayerRenderListener,
 QIPlayerShootVideoListener,
 QIPlayerVideoFrameSizeChangeListener,
-QIPlayerSeekListener
+QIPlayerSeekListener,
+QNCDNQualityDelegate // 质量监控代理
 >
+
+/*!
+ * @abstract 质量监控等级
+ */
+typedef NS_ENUM(NSUInteger, QNCDNQualityGrade) {
+    /*!
+     * @abstract 好
+     */
+    QNCDNQualityGradeGood = 0,
+    
+    /*!
+     * @abstract 中
+     */
+    QNCDNQualityGradeFair,
+    
+    /*!
+     * @abstract 差
+     */
+    QNCDNQualityGradePoor,
+};
 
 /** 播放器蒙版视图 **/
 @property (nonatomic, strong) QNPlayerMaskView *maskView;
@@ -87,9 +114,56 @@ QIPlayerSeekListener
 @property (nonatomic, assign) NSInteger firstVideoTime;
 @property (nonatomic, assign) int seiNum;
 @property (nonatomic, strong) NSString *seiString;
+@property (nonatomic, strong) NSURL *selectedURL;
+// 质量监控对象
+@property (nonatomic, strong) QNCDNQualityMonitor *monitor;
+
+@property (nonatomic, assign) BOOL isBuffering;
+@property (nonatomic, assign) int rtt;
+@property (nonatomic, assign) QNCDNQualityGrade grade;
+@property (nonatomic, assign) long long lastBufferingTime;
+@property (nonatomic, strong) NSTimer *goodTimer;
+@property (nonatomic, strong) NSTimer *fairTimer;
+@property (nonatomic, strong) UIView *gradeView;
+
 @end
 
 @implementation QNPlayerViewController
+
+- (long long)currentTimestamp {
+    return (long long)(1000 * [[NSDate date] timeIntervalSince1970]);
+}
+
+- (void)checkGoodNetwork {
+    if ([self currentTimestamp] - _lastBufferingTime >= QN_GOOD_QUALITY_BUFFERING_PERIOD) {
+        _grade = QNCDNQualityGradeGood;
+        _gradeView.backgroundColor = [UIColor greenColor];
+    }
+    NSLog(@"Hera -- checkGoodNetwork grade %ld", _grade);
+}
+
+- (void)checkPoorNetwork {
+    if (!_isBuffering) {
+        return;
+    }
+    if ([self currentTimestamp] - _lastBufferingTime >= QN_FAIR_QUALITY_BUFFERING_PERIOD && [self currentTimestamp] - _lastBufferingTime < QN_POOR_QUALITY_BUFFERING_PERIOD) {
+        // buffering 超过 1s，判断网络质量适中
+        _grade = QNCDNQualityGradeFair;
+        _gradeView.backgroundColor = [UIColor cyanColor];
+    } else if ([self currentTimestamp] - _lastBufferingTime >= QN_POOR_QUALITY_BUFFERING_PERIOD) {
+        // buffering 超过 3s，判断网络质量差
+        _grade = QNCDNQualityGradePoor;
+        _gradeView.backgroundColor = [UIColor redColor];
+    }
+    NSLog(@"Hera -- checkPoorNetwork grade %ld", _grade);
+}
+
+- (void)qualityMonitor:(QNCDNQualityMonitor *)qualityMonitor url:(NSString *)url rtt:(int)rtt {
+    if ([url isEqualToString:_selectedURL.absoluteString]) {
+        _rtt = rtt;
+        NSLog(@"Hera -- qualityMonitor rtt %d", rtt);
+    }
+}
 
 - (void)dealloc {
     NSLog(@"QNPlayerViewController dealloc");
@@ -104,7 +178,20 @@ QIPlayerSeekListener
     } else{
         [self.navigationController setNavigationBarHidden:NO animated:NO];
     }
+    // 质量监控使用示例
+    _monitor = [[QNCDNQualityMonitor alloc] init];
+    _monitor.interval = 1;
+    _monitor.delegate = self;
+    [_monitor addObserver:_selectedURL.absoluteString];
+    [_monitor start];
+    
+    _gradeView = [[UIView alloc] initWithFrame:CGRectMake(self.maskView.frame.origin.x + 68, self.maskView.frame.origin.y - 75, 30, 30)];
+    _gradeView.clipsToBounds = YES;
+    _gradeView.layer.cornerRadius = 15;
+    _gradeView.backgroundColor = [UIColor greenColor];
+    [_maskView addSubview:_gradeView];
 }
+
 -(void)viewDidDisappear:(BOOL)animated{
     [super viewDidDisappear:animated];
     if (!self.scanClick) {
@@ -118,6 +205,21 @@ QIPlayerSeekListener
 }
 - (void)viewWillDisappear:(BOOL)animated {
     [super viewWillDisappear:animated];
+    
+    [self removeObserver:self forKeyPath:@"grade"];
+
+    if (_goodTimer) {
+        [_goodTimer invalidate];
+        _goodTimer = nil;
+    }
+    
+    if (_fairTimer) {
+        [_fairTimer invalidate];
+        _fairTimer = nil;
+    }
+    [_monitor stop];
+    [_monitor removeObserver:_selectedURL.absoluteString];
+    
     if (!self.scanClick) {
         
         [self.durationTimer invalidate];
@@ -125,14 +227,8 @@ QIPlayerSeekListener
         [self.myPlayerView.controlHandler stop];
         
         [self.myPlayerView.controlHandler playerRelease];
-        
-        
     }
-    
-    
 }
-
-
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -235,7 +331,7 @@ QIPlayerSeekListener
     QMediaModel *model = _playerModels.firstObject;
 
     [self.myPlayerView.controlHandler playMediaModel:model startPos:[[QDataHandle shareInstance] getConfiguraPostion]];
-
+    _selectedURL = [NSURL URLWithString:model.streamElements[0].url];
 }
 
 #pragma mark - PlayerListenerDelegate
@@ -362,10 +458,37 @@ QIPlayerSeekListener
 
 
 -(void)onBufferingEnd:(QPlayerContext *)context{
+    NSLog(@"Hera -- onBufferingEnd");
     [self.maskView removeActivityIndicatorView];
+    // 质量监控使用示例
+    _isBuffering = NO;
+    // 触发 buffering 并且 rtt 大于 200ms，判定网络较差
+    if (_rtt > QN_HIGH_RTT_THRESHOLD) {
+        _grade = QNCDNQualityGradePoor;
+        // 取消并重置定时任务
+        if (_goodTimer) {
+            [_goodTimer invalidate];
+            _goodTimer = nil;
+        }
+        // 开启定时任务，5s内未再触发 buffering，判断网络为 Good
+        _goodTimer = [NSTimer scheduledTimerWithTimeInterval:QN_GOOD_QUALITY_BUFFERING_PERIOD target:self selector:@selector(checkGoodNetwork) userInfo:nil repeats:YES];
+    }
 }
 -(void)onBufferingStart:(QPlayerContext *)context{
+    NSLog(@"Hera -- onBufferingStart");
     [self.maskView loadActivityIndicatorView];
+    // 质量监控使用示例
+    _isBuffering = YES;
+    _lastBufferingTime = [self currentTimestamp];
+    if (_rtt > QN_HIGH_RTT_THRESHOLD) {
+        // 取消并重置定时任务
+        if (_fairTimer) {
+            [_fairTimer invalidate];
+            _fairTimer = nil;
+        }
+        // 开启定时任务，超过1s判断网络为 Fair，超过3s内判断网络为 Poor
+        _fairTimer = [NSTimer scheduledTimerWithTimeInterval:QN_FAIR_QUALITY_BUFFERING_PERIOD target:self selector:@selector(checkPoorNetwork) userInfo:nil repeats:YES];
+    }
 }
 -(void)onQualitySwitchComplete:(QPlayerContext *)context usertype:(NSString *)usertype urlType:(QPlayerURLType)urlType oldQuality:(NSInteger)oldQuality newQuality:(NSInteger)newQuality{
     NSString *string = [NSString stringWithFormat:@"清晰度 %ld p",(long)newQuality];
@@ -744,7 +867,10 @@ QIPlayerSeekListener
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    NSURL *selectedURL = [NSURL URLWithString:_playerModels[indexPath.row].streamElements[0].url];
+    // 移除旧的播放地址质量监控
+    [_monitor removeObserver:_selectedURL.absoluteString];
+    
+    _selectedURL = [NSURL URLWithString:_playerModels[indexPath.row].streamElements[0].url];
     if (self.myPlayerView.controlHandler.currentPlayerState == QPLAYER_STATE_PLAYING) {
         [self.myPlayerView.controlHandler pauseRender];
     }
@@ -802,8 +928,9 @@ QIPlayerSeekListener
 //    }
     [self.myPlayerView.controlHandler playMediaModel:model startPos:[[QDataHandle shareInstance] getConfiguraPostion]];
     [_maskView setPlayButtonState:NO];
-    [self judgeWeatherIsLiveWithURL:selectedURL];
-    
+    [self judgeWeatherIsLiveWithURL:_selectedURL];
+    // 添加新选中的播放地址质量监控
+    [_monitor addObserver:_playerModels[indexPath.row].streamElements[0].url];
 }
 
 - (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
