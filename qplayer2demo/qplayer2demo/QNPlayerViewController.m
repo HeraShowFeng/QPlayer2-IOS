@@ -50,26 +50,6 @@ QIPlayerSeekListener,
 QNCDNQualityDelegate // 质量监控代理
 >
 
-/*!
- * @abstract 质量监控等级
- */
-typedef NS_ENUM(NSUInteger, QNCDNQualityGrade) {
-    /*!
-     * @abstract 好
-     */
-    QNCDNQualityGradeGood = 0,
-    
-    /*!
-     * @abstract 中
-     */
-    QNCDNQualityGradeFair,
-    
-    /*!
-     * @abstract 差
-     */
-    QNCDNQualityGradePoor,
-};
-
 /** 播放器蒙版视图 **/
 @property (nonatomic, strong) QNPlayerMaskView *maskView;
 
@@ -123,6 +103,9 @@ typedef NS_ENUM(NSUInteger, QNCDNQualityGrade) {
 @property (nonatomic, assign) QNCDNQualityGrade grade;
 @property (nonatomic, assign) long long lastBufferingTime;
 @property (nonatomic, strong) UIView *gradeView;
+@property (nonatomic, strong) NSTimer *goodTimer;
+@property (nonatomic, strong) NSTimer *fairTimer;
+@property (nonatomic, strong) NSTimer *poorTimer;
 
 @end
 
@@ -132,7 +115,27 @@ typedef NS_ENUM(NSUInteger, QNCDNQualityGrade) {
     return (long long)(1000 * [[NSDate date] timeIntervalSince1970]);
 }
 
+- (void)cancelTimer {
+    if (_fairTimer) {
+        [_fairTimer invalidate];
+        _fairTimer = nil;
+    }
+    
+    if (_poorTimer) {
+        [_goodTimer invalidate];
+        _goodTimer = nil;
+    }
+    
+    if (_goodTimer) {
+        [_goodTimer invalidate];
+        _goodTimer = nil;
+    }
+}
+
 - (void)goodNetwork {
+    if (_isBuffering) {
+        return;
+    }
     _grade = QNCDNQualityGradeGood;
     _gradeView.backgroundColor = [UIColor greenColor];
     NSLog(@"Hera -- grade good");
@@ -146,6 +149,7 @@ typedef NS_ENUM(NSUInteger, QNCDNQualityGrade) {
     _grade = QNCDNQualityGradeFair;
     _gradeView.backgroundColor = [UIColor cyanColor];
     NSLog(@"Hera -- grade fair");
+    _poorTimer = [NSTimer scheduledTimerWithTimeInterval:QN_POOR_QUALITY_BUFFERING_PERIOD target:self selector:@selector(poorNetwork) userInfo:nil repeats:NO];
 }
 
 - (void)poorNetwork {
@@ -162,6 +166,9 @@ typedef NS_ENUM(NSUInteger, QNCDNQualityGrade) {
     if ([url isEqualToString:_selectedURL.absoluteString]) {
         _rtt = rtt;
         NSLog(@"Hera -- qualityMonitor rtt %d", rtt);
+        if (_rtt > QN_HIGH_RTT_THRESHOLD && _isBuffering && !_fairTimer) {
+            _fairTimer = [NSTimer scheduledTimerWithTimeInterval:QN_FAIR_QUALITY_BUFFERING_PERIOD target:self selector:@selector(fairNetwork) userInfo:nil repeats:NO];
+        }
     }
 }
 
@@ -205,8 +212,8 @@ typedef NS_ENUM(NSUInteger, QNCDNQualityGrade) {
 }
 - (void)viewWillDisappear:(BOOL)animated {
     [super viewWillDisappear:animated];
-
     
+    [self cancelTimer];
     
     [_monitor stop];
     [_monitor removeObserver:_selectedURL.absoluteString];
@@ -453,9 +460,9 @@ typedef NS_ENUM(NSUInteger, QNCDNQualityGrade) {
     [self.maskView removeActivityIndicatorView];
     // 质量监控使用示例
     _isBuffering = NO;
-    // 触发 buffering 并且 rtt 大于 200ms，判定网络较差
-    if (_rtt > QN_HIGH_RTT_THRESHOLD) {
-        [self performSelector:@selector(goodNetwork) withObject:nil afterDelay:QN_GOOD_QUALITY_BUFFERING_PERIOD];
+    if (_grade != QNCDNQualityGradeGood) {
+        [self cancelTimer];
+        _goodTimer = [NSTimer scheduledTimerWithTimeInterval:QN_GOOD_QUALITY_BUFFERING_PERIOD target:self selector:@selector(goodNetwork) userInfo:nil repeats:NO];
     }
 }
 -(void)onBufferingStart:(QPlayerContext *)context{
@@ -465,8 +472,8 @@ typedef NS_ENUM(NSUInteger, QNCDNQualityGrade) {
     _isBuffering = YES;
     _lastBufferingTime = [self currentTimestamp];
     if (_rtt > QN_HIGH_RTT_THRESHOLD) {
-        [self performSelector:@selector(fairNetwork) withObject:nil afterDelay:QN_FAIR_QUALITY_BUFFERING_PERIOD];
-        [self performSelector:@selector(poorNetwork) withObject:nil afterDelay:QN_POOR_QUALITY_BUFFERING_PERIOD];
+        [self cancelTimer];
+        _fairTimer = [NSTimer scheduledTimerWithTimeInterval:QN_FAIR_QUALITY_BUFFERING_PERIOD target:self selector:@selector(fairNetwork) userInfo:nil repeats:NO];
     }
 }
 

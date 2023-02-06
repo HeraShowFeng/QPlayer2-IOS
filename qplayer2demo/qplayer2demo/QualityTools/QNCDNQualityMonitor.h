@@ -9,6 +9,26 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/*!
+ * @abstract 质量等级
+ */
+typedef NS_ENUM(NSUInteger, QNCDNQualityGrade) {
+    /*!
+     * @abstract 好
+     */
+    QNCDNQualityGradeGood = 0,
+    
+    /*!
+     * @abstract 中
+     */
+    QNCDNQualityGradeFair,
+    
+    /*!
+     * @abstract 差
+     */
+    QNCDNQualityGradePoor,
+};
+
 @class QNCDNQualityMonitor;
 
 @protocol QNCDNQualityDelegate <NSObject>
