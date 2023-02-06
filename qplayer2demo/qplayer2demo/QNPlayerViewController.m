@@ -122,8 +122,6 @@ typedef NS_ENUM(NSUInteger, QNCDNQualityGrade) {
 @property (nonatomic, assign) int rtt;
 @property (nonatomic, assign) QNCDNQualityGrade grade;
 @property (nonatomic, assign) long long lastBufferingTime;
-@property (nonatomic, strong) NSTimer *goodTimer;
-@property (nonatomic, strong) NSTimer *fairTimer;
 @property (nonatomic, strong) UIView *gradeView;
 
 @end
@@ -134,28 +132,30 @@ typedef NS_ENUM(NSUInteger, QNCDNQualityGrade) {
     return (long long)(1000 * [[NSDate date] timeIntervalSince1970]);
 }
 
-- (void)checkGoodNetwork {
-    if ([self currentTimestamp] - _lastBufferingTime >= QN_GOOD_QUALITY_BUFFERING_PERIOD) {
-        _grade = QNCDNQualityGradeGood;
-        _gradeView.backgroundColor = [UIColor greenColor];
-    }
-    NSLog(@"Hera -- checkGoodNetwork grade %ld", _grade);
+- (void)goodNetwork {
+    _grade = QNCDNQualityGradeGood;
+    _gradeView.backgroundColor = [UIColor greenColor];
+    NSLog(@"Hera -- grade good");
 }
 
-- (void)checkPoorNetwork {
+- (void)fairNetwork {
     if (!_isBuffering) {
         return;
     }
-    if ([self currentTimestamp] - _lastBufferingTime >= QN_FAIR_QUALITY_BUFFERING_PERIOD && [self currentTimestamp] - _lastBufferingTime < QN_POOR_QUALITY_BUFFERING_PERIOD) {
-        // buffering 超过 1s，判断网络质量适中
-        _grade = QNCDNQualityGradeFair;
-        _gradeView.backgroundColor = [UIColor cyanColor];
-    } else if ([self currentTimestamp] - _lastBufferingTime >= QN_POOR_QUALITY_BUFFERING_PERIOD) {
-        // buffering 超过 3s，判断网络质量差
-        _grade = QNCDNQualityGradePoor;
-        _gradeView.backgroundColor = [UIColor redColor];
+    // buffering 超过 1s，判断网络质量适中
+    _grade = QNCDNQualityGradeFair;
+    _gradeView.backgroundColor = [UIColor cyanColor];
+    NSLog(@"Hera -- grade fair");
+}
+
+- (void)poorNetwork {
+    if (!_isBuffering) {
+        return;
     }
-    NSLog(@"Hera -- checkPoorNetwork grade %ld", _grade);
+    // buffering 超过 3s，判断网络质量差
+    _grade = QNCDNQualityGradePoor;
+    _gradeView.backgroundColor = [UIColor redColor];
+    NSLog(@"Hera -- grade poor");
 }
 
 - (void)qualityMonitor:(QNCDNQualityMonitor *)qualityMonitor url:(NSString *)url rtt:(int)rtt {
@@ -205,18 +205,9 @@ typedef NS_ENUM(NSUInteger, QNCDNQualityGrade) {
 }
 - (void)viewWillDisappear:(BOOL)animated {
     [super viewWillDisappear:animated];
-    
-    [self removeObserver:self forKeyPath:@"grade"];
 
-    if (_goodTimer) {
-        [_goodTimer invalidate];
-        _goodTimer = nil;
-    }
     
-    if (_fairTimer) {
-        [_fairTimer invalidate];
-        _fairTimer = nil;
-    }
+    
     [_monitor stop];
     [_monitor removeObserver:_selectedURL.absoluteString];
     
@@ -464,14 +455,7 @@ typedef NS_ENUM(NSUInteger, QNCDNQualityGrade) {
     _isBuffering = NO;
     // 触发 buffering 并且 rtt 大于 200ms，判定网络较差
     if (_rtt > QN_HIGH_RTT_THRESHOLD) {
-        _grade = QNCDNQualityGradePoor;
-        // 取消并重置定时任务
-        if (_goodTimer) {
-            [_goodTimer invalidate];
-            _goodTimer = nil;
-        }
-        // 开启定时任务，5s内未再触发 buffering，判断网络为 Good
-        _goodTimer = [NSTimer scheduledTimerWithTimeInterval:QN_GOOD_QUALITY_BUFFERING_PERIOD target:self selector:@selector(checkGoodNetwork) userInfo:nil repeats:YES];
+        [self performSelector:@selector(goodNetwork) withObject:nil afterDelay:QN_GOOD_QUALITY_BUFFERING_PERIOD];
     }
 }
 -(void)onBufferingStart:(QPlayerContext *)context{
@@ -481,15 +465,11 @@ typedef NS_ENUM(NSUInteger, QNCDNQualityGrade) {
     _isBuffering = YES;
     _lastBufferingTime = [self currentTimestamp];
     if (_rtt > QN_HIGH_RTT_THRESHOLD) {
-        // 取消并重置定时任务
-        if (_fairTimer) {
-            [_fairTimer invalidate];
-            _fairTimer = nil;
-        }
-        // 开启定时任务，超过1s判断网络为 Fair，超过3s内判断网络为 Poor
-        _fairTimer = [NSTimer scheduledTimerWithTimeInterval:QN_FAIR_QUALITY_BUFFERING_PERIOD target:self selector:@selector(checkPoorNetwork) userInfo:nil repeats:YES];
+        [self performSelector:@selector(fairNetwork) withObject:nil afterDelay:QN_FAIR_QUALITY_BUFFERING_PERIOD];
+        [self performSelector:@selector(poorNetwork) withObject:nil afterDelay:QN_POOR_QUALITY_BUFFERING_PERIOD];
     }
 }
+
 -(void)onQualitySwitchComplete:(QPlayerContext *)context usertype:(NSString *)usertype urlType:(QPlayerURLType)urlType oldQuality:(NSInteger)oldQuality newQuality:(NSInteger)newQuality{
     NSString *string = [NSString stringWithFormat:@"清晰度 %ld p",(long)newQuality];
     [self.toastView addText:string];

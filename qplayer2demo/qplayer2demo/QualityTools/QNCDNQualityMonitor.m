@@ -80,7 +80,6 @@
         NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:requestURL]];
         [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
         request.HTTPMethod = @"GET";
-        request.timeoutInterval = 10;
         
         long startTime = [self currentTimestamp];
         NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
@@ -89,7 +88,8 @@
                 long requestTime = [self currentTimestamp] - startTime;
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (self.delegate && [self.delegate respondsToSelector:@selector(qualityMonitor:url:rtt:)]) {
-                        [self.delegate qualityMonitor:self url:url rtt:requestTime/2.0];
+                        // HTTP 1.1 开始默认开启 keep-alive 即复用了 TCP 连接，无需除以 2
+                        [self.delegate qualityMonitor:self url:url rtt:(int)requestTime];
                     }
                 });
             }
