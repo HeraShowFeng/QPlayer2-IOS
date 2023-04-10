@@ -314,8 +314,8 @@ QNCDNQualityDelegate // 质量监控代理
     }
     
     NSString *documentsDir = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
-
-    self.myPlayerView = [[QPlayerView alloc]initWithFrame:CGRectMake(0, _topSpace, PLAYER_PORTRAIT_WIDTH, PLAYER_PORTRAIT_HEIGHT) APPVersion:@"" localStorageDir:documentsDir logLevel:LOG_VERBOSE];
+    sleep(3);
+    self.myPlayerView = [[QPlayerView alloc]initWithFrame:CGRectMake(0, _topSpace, PLAYER_PORTRAIT_WIDTH, PLAYER_PORTRAIT_HEIGHT) APPVersion:@"" localStorageDir:documentsDir logLevel:LOG_VERBOSE authorid:@"1"];
     [self.view addSubview:self.myPlayerView];
 //    [self.playerContext.controlHandler forceAuthenticationFromNetwork];
     [self.myPlayerView.controlHandler forceAuthenticationFromNetwork];

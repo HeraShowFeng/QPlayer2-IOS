@@ -32,6 +32,15 @@ NS_ASSUME_NONNULL_BEGIN
  */
 -(instancetype)initPlayerAPPVersion:(NSString *)APPVersion localStorageDir:(NSString *)localStorageDir logLevel:(QLogLevel)logLevel;
 
+/**
+ 初始化
+ @param APPVersion APP版本号
+ @param localStorageDir 持久化相关的路径（注意权限） 目前只存日志
+ @param logLevel 日志等级
+ @param authorid authorid
+ */
+
+-(instancetype)initPlayerAPPVersion:(NSString *)APPVersion localStorageDir:(NSString *)localStorageDir logLevel:(QLogLevel)logLevel authorid:(NSString *)authorid;
 
 /**
  * 获取播放控制Handler

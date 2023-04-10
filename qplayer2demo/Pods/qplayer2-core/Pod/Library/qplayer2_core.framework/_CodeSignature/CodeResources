@@ -118,11 +118,11 @@
 		</data>
 		<key>Headers/QPlayerContext.h</key>
 		<data>
-		OYO4s412DfE8vrC1dHy/lZDDyKM=
+		W9lZRW2lObsGO4S5n5q4yNZ7sMc=
 		</data>
 		<key>Headers/QPlayerControlHandler.h</key>
 		<data>
-		Z9WCJsebWLCEoWo4J38QdrrrUC0=
+		MYJkl7htNa0XM9gHFN5eXccmZgQ=
 		</data>
 		<key>Headers/QPlayerRenderHandler.h</key>
 		<data>
@@ -130,7 +130,7 @@
 		</data>
 		<key>Headers/QPlayerView.h</key>
 		<data>
-		fi9y5E8wLfos1hKW8/2QM7+yna0=
+		rQ77mMHMCy1ltwkPgcrTeopHdM0=
 		</data>
 		<key>Headers/RenderView.h</key>
 		<data>
@@ -142,7 +142,7 @@
 		</data>
 		<key>Info.plist</key>
 		<data>
-		XfVB8JnpOhgunqFKpQjsZeeV680=
+		K4TVLFhrhbF4WQbQ+HqgyPqVWXY=
 		</data>
 		<key>Modules/module.modulemap</key>
 		<data>
@@ -467,22 +467,22 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			OYO4s412DfE8vrC1dHy/lZDDyKM=
+			W9lZRW2lObsGO4S5n5q4yNZ7sMc=
 			</data>
 			<key>hash2</key>
 			<data>
-			gR6tqQ/F6dztw8jfv0yCVCF6RR4DwdvlSvfIworbq9M=
+			o7vaPQzxSvmgabBc2CMal1cBs+VpPOwDo9F7OJ7wODc=
 			</data>
 		</dict>
 		<key>Headers/QPlayerControlHandler.h</key>
 		<dict>
 			<key>hash</key>
 			<data>
-			Z9WCJsebWLCEoWo4J38QdrrrUC0=
+			MYJkl7htNa0XM9gHFN5eXccmZgQ=
 			</data>
 			<key>hash2</key>
 			<data>
-			rlWEsMzuKw80nKw42sauriVoHHUfx9A5eGq7jgUSpMU=
+			IUrB8lh5y/X65KWM+HBSZ7GVMYcbvXbv0oKKkf2qa1w=
 			</data>
 		</dict>
 		<key>Headers/QPlayerRenderHandler.h</key>
@@ -500,11 +500,11 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			fi9y5E8wLfos1hKW8/2QM7+yna0=
+			rQ77mMHMCy1ltwkPgcrTeopHdM0=
 			</data>
 			<key>hash2</key>
 			<data>
-			ZV94k7X3kxssLJTz6FSdTMLEDLC0BcsoLId2whsAEaA=
+			fZQ7U27OekVuH4OoJjd5dT36Qeq8k/oM2qDMYXxr/Jc=
 			</data>
 		</dict>
 		<key>Headers/RenderView.h</key>

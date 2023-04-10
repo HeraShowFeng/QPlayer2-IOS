@@ -232,7 +232,7 @@
             {
                 "userType": "",
                 "urlType": 0,
-                "url": "rtmp://pili-rtmp.qnsdk.com/sdk-live/6666@480p",
+                "url": "rtmp://pili-rtmp.qnsdk.com/sdk-live/6666@pili_levle1",
                 "quality": 480,
                 "isSelected": 0,
                 "backupUrl": "",

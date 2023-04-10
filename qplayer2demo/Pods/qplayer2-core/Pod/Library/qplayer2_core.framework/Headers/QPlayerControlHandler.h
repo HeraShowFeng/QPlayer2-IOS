@@ -200,6 +200,12 @@ NS_ASSUME_NONNULL_BEGIN
 -(BOOL)setSEIEnable:(BOOL)enable NS_SWIFT_NAME(setSEIEnable(enable:));
 
 /**
+ * 回复播放器所需的 AudioSessionCategory
+ * @return true 调用成功， false 调用失败
+ */
+-(BOOL)resumeAudioSessionCategory NS_SWIFT_NAME(resumeAudioSessionCategory());
+
+/**
  * 添加视频状态监听
  * @param listener 视频状态监听
  * @return true 调用成功， false 调用失败
