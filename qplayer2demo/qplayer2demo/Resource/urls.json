@@ -110,6 +110,52 @@
             {
                 "userType": "",
                 "urlType": 0,
+                "url": "rtmp://pili-live-rtmp.test.qnsdk.com/sdk-live-test/test6666",
+                "quality": 1080,
+                "isSelected": 1,
+                "backupUrl": "",
+                "referer": "",
+                 
+            },
+            {
+                "userType": "",
+                "urlType": 0,
+                "url": "rtmp://pili-live-rtmp.test.qnsdk.com/sdk-live-test/test6666@zn720p",
+                "quality": 720,
+                "isSelected": 0,
+                "backupUrl": "",
+                "referer": "",
+                 
+            },
+            {
+                "userType": "",
+                "urlType": 0,
+                "url": "rtmp://pili-live-rtmp.test.qnsdk.com/sdk-live-test/test6666@zn480p",
+                "quality": 480,
+                "isSelected": 0,
+                "backupUrl": "",
+                "referer": "",
+                 
+            },
+            {
+                "userType": "",
+                "urlType": 0,
+                "url": "rtmp://pili-live-rtmp.test.qnsdk.com/sdk-live-test/test6666@zn240p",
+                "quality": 240,
+                "isSelected": 0,
+                "backupUrl": "",
+                "referer": "",
+                 
+            }
+        ]
+    },
+    {
+          
+        "isLive": 1,
+        "streamElements": [
+            {
+                "userType": "",
+                "urlType": 0,
                 "url": "rtmp://pili-rtmp.qnsdk.com/sdk-live/841666",
                 "quality": 100,
                 "isSelected": 1,
